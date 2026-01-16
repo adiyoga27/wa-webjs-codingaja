@@ -234,8 +234,11 @@
                     <a href="/" class="btn-icon" title="Dashboard"><i class="fas fa-home"></i></a>
                 </div>
             </div>
-            <div class="search-bar">
-                <input type="text" class="form-control form-control-sm" placeholder="Search or start new chat">
+            <!-- New Chat / Search -->
+            <div class="search-bar d-flex">
+                <input type="text" class="form-control form-control-sm me-2" placeholder="Search or start new chat">
+                <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#newChatModal"
+                    title="New Chat"><i class="fas fa-plus"></i></button>
             </div>
             <div class="contact-list" id="contact-list">
                 <!-- Contacts will be loaded here -->
@@ -290,6 +293,34 @@
                 <button class="btn-icon"><i class="fas fa-paperclip"></i></button>
                 <input type="text" id="message-input" class="input-box" placeholder="Type a message">
                 <button class="btn-icon" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    </div>
+    </div>
+    </div>
+
+    <!-- New Chat Modal -->
+    <div class="modal fade" id="newChatModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Start New Chat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" id="new-chat-number"
+                            placeholder="628123456789 (Country Code included)">
+                        <div class="form-text">Enter number with country code (e.g., 62 for Indonesia).</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="startNewChat()">Start Chat</button>
+                </div>
             </div>
         </div>
     </div>
@@ -379,21 +410,65 @@
         // Update My Info
         if (myInfo.avatar) document.getElementById('my-avatar').src = myInfo.avatar;
 
+        function startNewChat() {
+            const input = document.getElementById('new-chat-number');
+            let number = input.value.replace(/\D/g, ''); // Remove non-digits
+            if (!number) return alert('Please enter a valid number');
+
+            // Format to JID
+            const jid = number + '@c.us';
+
+            // Generate a UI object for this chat if it doesn't exist
+            // Check if exists
+            const existing = chats.find(c => c.remoteJid === jid);
+            if (!existing) {
+                // Add temp chat object
+                chats.unshift({
+                    remoteJid: jid,
+                    timestamp: Math.floor(Date.now() / 1000),
+                    body: 'Click to start chatting',
+                    fromMe: true
+                });
+                renderChats();
+            }
+
+            // Hide Modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('newChatModal'));
+            modal.hide();
+
+            // Select it
+            selectChat(jid);
+        }
+
         // Load Chats
         async function loadChats() {
+            const list = document.getElementById('contact-list');
             try {
                 const res = await fetch(`/api/client/${clientId}/chats`, {
-                    headers: { 'x-api-key': 'dashboard-session' } // Allow dashboard to access if using session middleware properly or just rely on session
+                    headers: { 'x-api-key': 'dashboard-session' }, // For semantics, mostly relies on cookie
+                    credentials: 'include'
                 });
+
+                if (!res.ok) throw new Error(`API Error: ${res.status}`);
+
                 const data = await res.json();
                 chats = data;
                 renderChats();
-            } catch (e) { console.error("Failed to load chats", e); }
+            } catch (e) {
+                console.error("Failed to load chats", e);
+                list.innerHTML = `<div class="text-center mt-5 text-danger"><i class="fas fa-exclamation-triangle"></i> Failed to load chats.<br><small>${e.message}</small></div>`;
+            }
         }
 
         function renderChats() {
             const list = document.getElementById('contact-list');
             list.innerHTML = '';
+
+            if (chats.length === 0) {
+                list.innerHTML = `<div class="text-center mt-5 text-muted"><i class="far fa-comments fa-2x"></i><br>No chats found.<br><small>New messages will appear here.</small></div>`;
+                return;
+            }
+
             chats.forEach(chat => {
                 const div = document.createElement('div');
                 div.className = `contact-item ${currentJid === chat.remoteJid ? 'active' : ''}`;
