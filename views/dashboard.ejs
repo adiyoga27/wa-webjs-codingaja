@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - WA Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">WA Bot Manager</a>
+            <div class="d-flex">
+                <a href="/logout" class="btn btn-outline-light btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">Add New Client</div>
+                    <div class="card-body">
+                        <form action="/create-client" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Client ID (e.g. name or number)</label>
+                                <input type="text" name="clientId" class="form-control" placeholder="client-1" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Create Client</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">Active Clients</div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if (clients.length===0) { %>
+                                    <tr>
+                                        <td colspan="3" class="text-center">No clients active</td>
+                                    </tr>
+                                    <% } %>
+                                        <% clients.forEach(client=> { %>
+                                            <tr>
+                                                <td>
+                                                    <%= client.id %>
+                                                </td>
+                                                <td>
+                                                    <span
+                                                        class="badge bg-<%= client.status === 'READY' ? 'success' : (client.status === 'INITIALIZING' ? 'warning' : 'secondary') %>">
+                                                        <%= client.status %>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <a href="/client/<%= client.id %>"
+                                                        class="btn btn-sm btn-primary">Manage</a>
+                                                    <form action="/delete-client" method="POST" class="d-inline"
+                                                        onsubmit="return confirm('Delete this client?');">
+                                                        <input type="hidden" name="clientId" value="<%= client.id %>">
+                                                        <button type="submit"
+                                                            class="btn btn-sm btn-danger">Delete</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            <% }) %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

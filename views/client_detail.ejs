@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Added Modal Support -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Web Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #d1d7db;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 30%;
+            border-right: 1px solid #e9edef;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .sidebar-header {
+            padding: 10px 16px;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            border-bottom: 1px solid #d1d7db;
+        }
+
+        .search-bar {
+            padding: 8px 12px;
+            background: white;
+            border-bottom: 1px solid #f0f2f5;
+        }
+
+        .contact-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .contact-item {
+            display: flex;
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f2f5;
+            cursor: pointer;
+            align-items: center;
+        }
+
+        .contact-item:hover {
+            background: #f5f6f6;
+        }
+
+        .contact-item.active {
+            background: #f0f2f5;
+        }
+
+        .avatar {
+            width: 49px;
+            height: 49px;
+            border-radius: 50%;
+            background: #dfe1e5;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .contact-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contact-name {
+            font-size: 16px;
+            color: #111b21;
+            margin-bottom: 0px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .last-message {
+            font-size: 13px;
+            color: #667781;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #667781;
+            margin-left: 6px;
+        }
+
+        /* Main Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #efeae2;
+            position: relative;
+        }
+
+        /* Background pattern could be added here */
+        .chat-header {
+            height: 60px;
+            background: #f0f2f5;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #d1d7db;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 50px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message-bubble {
+            max-width: 65%;
+            padding: 6px 7px 8px 9px;
+            border-radius: 7.5px;
+            margin-bottom: 10px;
+            position: relative;
+            font-size: 14.2px;
+            line-height: 19px;
+            box-shadow: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+        }
+
+        .message-bubble.incoming {
+            background: white;
+            align-self: flex-start;
+            border-top-left-radius: 0;
+        }
+
+        .message-bubble.outgoing {
+            background: #d9fdd3;
+            align-self: flex-end;
+            border-top-right-radius: 0;
+        }
+
+        .message-meta {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            font-size: 11px;
+            color: #667781;
+            margin-top: -4px;
+            margin-left: 20px;
+        }
+
+        /* Input Area */
+        .chat-input {
+            background: #f0f2f5;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-box {
+            flex: 1;
+            border: none;
+            padding: 9px 12px;
+            border-radius: 8px;
+            margin: 0 10px;
+            outline: none;
+        }
+
+        /* Status/Connect Screen overlay */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #f0f2f5;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #54656f;
+            padding: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div>
+                    <!-- User Profile Pic if available -->
+                    <img id="my-avatar" src="https://via.placeholder.com/40" class="rounded-circle" width="40"
+                        height="40">
+                </div>
+                <div>
+                    <button class="btn-icon" title="Refresh" onclick="location.reload()"><i
+                            class="fas fa-sync"></i></button>
+                    <!-- Status Actions -->
+                    <form action="/client/action" method="POST" class="d-inline">
+                        <input type="hidden" name="clientId" value="<%= clientId %>">
+                        <input type="hidden" name="action" value="logout">
+                        <button class="btn-icon" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+                    </form>
+                    <a href="/" class="btn-icon" title="Dashboard"><i class="fas fa-home"></i></a>
+                </div>
+            </div>
+            <div class="search-bar">
+                <input type="text" class="form-control form-control-sm" placeholder="Search or start new chat">
+            </div>
+            <div class="contact-list" id="contact-list">
+                <!-- Contacts will be loaded here -->
+                <div class="text-center mt-5 text-muted">
+                    <i class="fas fa-spinner fa-spin"></i> Loading chats...
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-area">
+            <div class="chat-header" id="chat-header" style="display:none;">
+                <img id="chat-avatar" src="https://via.placeholder.com/40" class="avatar" style="margin:0 15px 0 0;">
+                <div class="contact-info">
+                    <div class="contact-name" id="chat-name">Select a contact</div>
+                    <div class="last-message" id="chat-info">Online</div>
+                </div>
+                <div>
+                    <button class="btn-icon"><i class="fas fa-search"></i></button>
+                    <button class="btn-icon"><i class="fas fa-ellipsis-v"></i></button>
+                </div>
+            </div>
+
+            <!-- Default Welcome Screen (If no chat selected) -->
+            <div id="welcome-screen" class="d-flex flex-column justify-content-center align-items-center h-100"
+                style="background:#f0f2f5; border-bottom: 6px solid #25d366;">
+                <h2 class="text-secondary fw-light">WhatsApp Web Admin</h2>
+                <p class="text-muted mt-3">Send and receive messages without keeping your phone online.</p>
+                <div id="qr-wrapper" class="text-center mt-4">
+                    <!-- QR Code will be placed here if strictly needed, or just status -->
+                    <% if(status !=='READY' ) { %>
+                        <h4>Client Status: <span class="badge bg-warning">
+                                <%= status %>
+                            </span></h4>
+                        <% if(qr) { %>
+                            <img src="<%= qr %>" width="250" class="border p-2 bg-white">
+                            <p>Scan to Connect</p>
+                            <% } %>
+                                <% } else { %>
+                                    <div class="text-success"><i class="fas fa-check-circle fa-3x"></i></div>
+                                    <p class="mt-2">Connected</p>
+                                    <% } %>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages" style="display:none;">
+                <!-- Messages go here -->
+            </div>
+
+            <div class="chat-input" id="chat-input-area" style="display:none;">
+                <button class="btn-icon"><i class="far fa-smile"></i></button>
+                <button class="btn-icon"><i class="fas fa-paperclip"></i></button>
+                <input type="text" id="message-input" class="input-box" placeholder="Type a message">
+                <button class="btn-icon" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div class="modal fade" id="apiKeyModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">API Key Management</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Use this key to authenticate API requests.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Current API Key</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="current-api-key"
+                                value="<%= user.apiKey || 'No Key Generated' %>" readonly>
+                            <button class="btn btn-outline-secondary"
+                                onclick="navigator.clipboard.writeText(document.getElementById('current-api-key').value)">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-danger" id="key-expiry">
+                            <%= user.apiKeyExpiresAt ? 'Expires: ' + new Date(user.apiKeyExpiresAt).toLocaleDateString()
+                                : '' %>
+                        </small>
+                    </div>
+
+                    <hr>
+                    <h6>Generate New Key</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Duration</label>
+                        <select class="form-select" id="key-duration">
+                            <option value="30">30 Days</option>
+                            <option value="90">90 Days</option>
+                            <option value="365">1 Year</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="generateApiKey()">Generate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // API Key Generation Logic
+        async function generateApiKey() {
+            const days = document.getElementById('key-duration').value;
+            if (!confirm('Generating a new key will invalidate the old one. Continue?')) return;
+
+            try {
+                const res = await fetch('/generate-api-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ days })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('current-api-key').value = data.apiKey;
+                    document.getElementById('key-expiry').innerText = 'Expires: ' + new Date(data.expiresAt).toLocaleDateString();
+                    alert('New API Key Generated!');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (e) {
+                alert('Request failed');
+            }
+        }
+    </script>
+    <script>
+        const socket = io();
+        const clientId = '<%= clientId %>';
+        const myInfo = <% - JSON.stringify(info || {}) %>;
+        let currentJid = null;
+        let chats = [];
+
+        // Join client room
+        socket.emit('join-client', clientId);
+
+        // Update My Info
+        if (myInfo.avatar) document.getElementById('my-avatar').src = myInfo.avatar;
+
+        // Load Chats
+        async function loadChats() {
+            try {
+                const res = await fetch(`/api/client/${clientId}/chats`, {
+                    headers: { 'x-api-key': 'dashboard-session' } // Allow dashboard to access if using session middleware properly or just rely on session
+                });
+                const data = await res.json();
+                chats = data;
+                renderChats();
+            } catch (e) { console.error("Failed to load chats", e); }
+        }
+
+        function renderChats() {
+            const list = document.getElementById('contact-list');
+            list.innerHTML = '';
+            chats.forEach(chat => {
+                const div = document.createElement('div');
+                div.className = `contact-item ${currentJid === chat.remoteJid ? 'active' : ''}`;
+                div.onclick = () => selectChat(chat.remoteJid);
+                // Formatting time
+                const date = new Date(chat.timestamp * 1000);
+                const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                div.innerHTML = `
+                    <img src="https://via.placeholder.com/50" class="avatar">
+                    <div class="contact-info">
+                        <div class="d-flex justify-content-between">
+                            <span class="contact-name">${chat.notifyName || chat.remoteJid.replace('@c.us', '')}</span>
+                            <span class="message-time">${timeStr}</span>
+                        </div>
+                        <div class="last-message">
+                            ${chat.fromMe ? '<i class="fas fa-check-double text-primary" style="font-size:10px;"></i>' : ''} 
+                            ${chat.body}
+                        </div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function selectChat(jid) {
+            currentJid = jid;
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('chat-header').style.display = 'flex';
+            document.getElementById('chat-messages').style.display = 'flex';
+            document.getElementById('chat-input-area').style.display = 'flex';
+
+            // Update Header (mock data for now, ideally fetch contact info)
+            document.getElementById('chat-name').innerText = jid.replace('@c.us', '');
+
+            renderChats(); // re-render to define active state
+
+            // Load Messages
+            const res = await fetch(`/api/client/${clientId}/chat/${jid}`);
+            const messages = await res.json();
+
+            const msgContainer = document.getElementById('chat-messages');
+            msgContainer.innerHTML = '';
+            messages.forEach(msg => appendMessage(msg));
+            msgContainer.scrollTop = msgContainer.scrollHeight;
+        }
+
+        function appendMessage(msg) {
+            const div = document.createElement('div');
+            div.className = `message-bubble ${msg.fromMe ? 'outgoing' : 'incoming'}`;
+
+            const date = new Date(msg.timestamp * 1000);
+            const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            div.innerHTML = `
+                ${msg.body}
+                <div class="message-meta">
+                    ${timeStr} 
+                    ${msg.fromMe ? '<i class="fas fa-check-double ms-1 ' + (msg.ack >= 3 ? 'text-primary' : 'text-muted') + '"></i>' : ''}
+                </div>
+             `;
+            document.getElementById('chat-messages').appendChild(div);
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value;
+            if (!text || !currentJid) return;
+
+            // Optimistic UI
+            const tempMsg = {
+                fromMe: true,
+                body: text,
+                timestamp: Math.floor(Date.now() / 1000),
+                ack: 0
+            };
+            appendMessage(tempMsg);
+            input.value = '';
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+
+            // Call API
+            await fetch(`/api/client/${clientId}/message/text`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to: currentJid.replace('@c.us', ''), message: text })
+            });
+        }
+
+        // Socket Events
+        socket.on('client-ready', (data) => {
+            if (data.id === clientId) location.reload();
+        });
+
+        socket.on('client-message', (data) => {
+            if (data.id === clientId) {
+                // If current chat is open, append
+                if (currentJid && (data.message.from === currentJid || (data.message.fromMe && data.message.to === currentJid))) {
+                    console.log("New message for current chat");
+                    // We need to convert the socket message format to our UI format
+                    // socket msg: { from, to, body, timestamp ... }
+                    // If receiving: from is the JID. If sending: to is the JID.
+                    const isCurrent = data.message.from === currentJid || data.message.to === currentJid;
+                    if (isCurrent) {
+                        // Ideally we just re-fetch or construct object
+                        appendMessage({
+                            fromMe: data.message.direction === 'sent',
+                            body: data.message.body,
+                            timestamp: data.message.timestamp || Math.floor(Date.now() / 1000),
+                            ack: 0
+                        });
+                        document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+                    }
+                }
+                // Refresh sidebar always
+                loadChats();
+            }
+        });
+
+        // Initial load
+        loadChats();
+    </script>
+</body>
+
+</html>
