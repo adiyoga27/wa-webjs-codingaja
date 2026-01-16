@@ -483,6 +483,16 @@
         }
 
         // Socket Events
+        socket.on('client-qr', (data) => {
+            if (data.id === clientId) {
+                // Check if we are currently waiting for QR
+                const qrWrapper = document.getElementById('qr-wrapper');
+                // If we are showing status, reload to show QR
+                // Simpler: Just reload the page, as the server-side view logic handles "Show QR if available"
+                location.reload();
+            }
+        });
+
         socket.on('client-ready', (data) => {
             if (data.id === clientId) location.reload();
         });
