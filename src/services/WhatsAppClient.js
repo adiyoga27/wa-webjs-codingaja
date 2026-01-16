@@ -31,9 +31,9 @@ class WhatsAppClient extends EventEmitter {
 
     initializeEvents() {
         this.client.on('qr', async (qr) => {
-            this.qr = qr;
-            this.status = 'QR_READY';
             const qrImage = await qrcode.toDataURL(qr);
+            this.qr = qrImage; // Store Base64 Image
+            this.status = 'QR_READY';
             this.emit('qr', qrImage);
             this.io.emit('client-qr', { id: this.id, qr: qrImage });
             console.log(`Client ${this.id}: QR Code received`);
